@@ -36,17 +36,18 @@ sub sniff {
     my $protocol = $self->protocol;
     $self->logger->infof( 'Sniffing [%s]', $self->stringify );
     $self->perform_request(
-        {   method => 'GET',
-            path   => '/_cluster/nodes',
-            qs     => {
-                timeout   => 1000 * $self->sniff_timeout,
-                $protocol => 1
-            },
+        {   method  => 'GET',
+            path    => '/_nodes/' . $protocol,
+            qs      => { timeout => 1000 * $self->sniff_timeout },
             timeout => $self->sniff_request_timeout,
         }
         )->then(
         sub { ( $self, $_[1]->{nodes} ) },
-        sub { $self->logger->debug(@_); ($self); }
+        sub {
+            $self->mark_dead;
+            $self->logger->debug(@_);
+            ($self);
+        }
         );
 }
 1;

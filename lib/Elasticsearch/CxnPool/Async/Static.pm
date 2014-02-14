@@ -17,31 +17,34 @@ sub next_cxn {
     my $now      = time();
     my $deferred = deferred;
 
-    my ( %seen, @skipped, $cxn, $weak_find_cxn );
+    my ( %seen, @skipped, $weak_find_cxn );
 
     my $find_cxn = sub {
         my $total = @$cxns;
+        my $found;
 
         if ( $total > keys %seen ) {
 
             # we haven't seen all cxns yet
             while ( $total-- ) {
-                $cxn = $cxns->[ $self->next_cxn_num ];
+                my $cxn = $cxns->[ $self->next_cxn_num ];
                 next if $seen{$cxn}++;
 
                 return $deferred->resolve($cxn)
                     if $cxn->is_live;
 
-                last if $cxn->next_ping <= time();
+                if ($cxn->next_ping <= time()) {
+                    $found = $cxn;
+                    last;
+                }
 
                 push @skipped, $cxn;
-                undef $cxn;
             }
         }
 
-        if ( $cxn ||= shift @skipped ) {
-            return $cxn->pings_ok->then(
-                sub { $deferred->resolve($cxn) },    # success
+        if ( $found ||= shift @skipped ) {
+            return $found->pings_ok->then(
+                sub { $deferred->resolve($found) },    # success
                 $weak_find_cxn                       # resolve
             );
         }

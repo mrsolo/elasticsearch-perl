@@ -49,7 +49,9 @@ sub next_cxn {
 sub sniff {
 #===================================
     my $self = shift;
-    if ( my $promise = $self->_current_sniff ) {
+
+    my $promise;
+    if ( $promise = $self->_current_sniff ) {
         return $promise;
     }
 
@@ -59,6 +61,7 @@ sub sniff {
     my $done       = 0;
     my $current    = 0;
     my $done_seeds = 0;
+    $promise = $self->_current_sniff( $deferred->promise );
 
     my ( @all, @skipped );
 
@@ -89,7 +92,7 @@ sub sniff {
             return $deferred->resolve();
         }
 
-        unless ( @all && $done_seeds++ ) {
+        unless ( @all || $done_seeds++ ) {
             $self->logger->infof(
                 "No live nodes available. Trying seed nodes.");
             @all = $self->_seeds_as_cxns;
@@ -111,7 +114,7 @@ sub sniff {
         $cxn->sniff->done($check_sniff);
     }
 
-    return $self->_current_sniff( $deferred->promise );
+    return $promise;
 }
 
 #===================================

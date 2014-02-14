@@ -33,19 +33,6 @@ sub perform_request {
         # log request regardless of success/failure
         ->finally( sub { $logger->trace_request( $cxn, $params ) } )
 
-        # request failed, should retry?
-        ->catch(
-        sub {
-            my $error = upgrade_error( shift(), { request => $params } );
-            die $error unless $pool->request_failed( $cxn, $error );
-
-            # log failed, then retry
-            $logger->debugf( "[%s] %s", $cxn->stringify, "$error" );
-            $logger->info('Retrying request on a new cxn');
-            $self->perform_request($params);
-        }
-        )
-
         ->done(
         # request succeeded
         sub {
@@ -56,9 +43,19 @@ sub perform_request {
             $deferred->resolve($response);
         },
 
-        # log fatal error
+        # request failed
         sub {
-            my $error = shift;
+            my $error = upgrade_error( shift(), { request => $params } );
+            if ( $pool->request_failed( $cxn, $error ) ) {
+
+                # log failed, then retry
+                $logger->debugf( "[%s] %s", $cxn->stringify, "$error" );
+                $logger->info('Retrying request on a new cxn');
+                return $self->perform_request($params)->done(
+                    sub { $deferred->resolve(@_) },
+                    sub { $deferred->reject(@_) }
+                );
+            }
             if ($cxn) {
                 $logger->trace_request( $cxn, $params );
                 $logger->trace_error( $cxn, $error );

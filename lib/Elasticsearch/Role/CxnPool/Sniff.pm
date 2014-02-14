@@ -2,7 +2,7 @@ package Elasticsearch::Role::CxnPool::Sniff;
 
 use Moo::Role;
 with 'Elasticsearch::Role::CxnPool';
-requires 'next_cxn', 'sniff', 'sniff_cxn';
+requires 'next_cxn', 'sniff';
 use namespace::clean;
 
 use Elasticsearch::Util qw(parse_params);

@@ -13,17 +13,20 @@ my $trace
     : $ENV{TRACE} eq '1' ? 'Stderr'
     :                      [ 'File', $ENV{TRACE} ];
 
-my $cv      = AE::cv;
-my $version = $ENV{ES_VERSION} || '';
-my $api     = $version =~ /^0.90/ ? '0_90::Direct' : 'Direct';
-my $body    = $ENV{ES_BODY} || 'GET';
-my $cxn     = $ENV{ES_CXN} || do "default_async_cxn.pl" || die $!;
+my $cv       = AE::cv;
+my $version  = $ENV{ES_VERSION} || '';
+my $api      = $version =~ /^0.90/ ? '0_90::Direct' : 'Direct';
+my $body     = $ENV{ES_BODY} || 'GET';
+my $cxn      = $ENV{ES_CXN} || do "default_async_cxn.pl" || die $!;
+my $cxn_pool = $ENV{ES_CXN_POOL} || 'Async::Static';
+
 my $es;
 if ( $ENV{ES} ) {
     $es = Elasticsearch::Async->new(
         nodes            => $ENV{ES},
         trace_to         => $trace,
         cxn              => $cxn,
+        cxn_pool         => $cxn_pool,
         client           => $api,
         send_get_body_as => $body
     );

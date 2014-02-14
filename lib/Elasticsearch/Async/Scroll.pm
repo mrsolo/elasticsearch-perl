@@ -60,17 +60,15 @@ sub start {
         sub {
             $self->_fetch_loop;
         }
-        )->then(
-        sub {
-            $self->finish;
-            $self->_clear__guard;
-            @_;
-        },
+        )->catch(
         sub {
             $self->on_error->(@_);
+            @_;
+        }
+        )->finally(
+        sub {
             $self->finish;
             $self->_clear__guard;
-            @_;
         }
         );
 }
@@ -86,10 +84,15 @@ sub _first_results {
     $self->_set_suggest( $results->{suggest} );
     $self->_set_took( $results->{took} );
     $self->_set_total_took( $results->{took} );
-    $self->_set__scroll_id( $results->{_scroll_id} );
-    $self->on_start && $self->on_start->($self);
 
-    return unless $total;
+    if ($total) {
+        $self->_set__scroll_id( $results->{_scroll_id} );
+    }
+    else {
+        $self->finish;
+    }
+
+    $self->on_start && $self->on_start->($self);
 
     my $hits = $results->{hits}{hits};
     return unless @$hits;
