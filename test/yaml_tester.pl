@@ -32,7 +32,7 @@ our %Test_Types = (
     },
     lt => sub {
         my ( $got, $expect, $name ) = @_;
-        cmp_ok ( $got, '<', $expected, 'got < expected' );
+        cmp_ok ( $got, '<', $expect, 'got < expect' );
     },
     gt => sub {
         my ( $got, $expect, $name ) = @_;
